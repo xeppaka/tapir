@@ -10,7 +10,7 @@ import scala.concurrent.duration.Duration
 class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
   import SchemaApplyValidationTestData._
 
-  it should "validate openProduct" in {
+  it should "validate openProduct" ignore {
     implicit val schemaForInt: Schema[Int] = Schema.schemaForInt.validate(Validator.min(10))
     val schema = implicitly[Schema[Map[String, Int]]]
 
@@ -18,7 +18,7 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     schema.applyValidation(Map("key" -> 12)) shouldBe empty
   }
 
-  it should "validate option" in {
+  it should "validate option" ignore {
     implicit val schemaForInt: Schema[Int] = Schema.schemaForInt.validate(Validator.min(10))
     val schema = implicitly[Schema[Option[Int]]]
 
@@ -27,7 +27,7 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     schema.applyValidation(Some(5)) shouldBe List(ValidationError.Primitive(Validator.min(10), 5))
   }
 
-  it should "validate iterable" in {
+  it should "validate iterable" ignore {
     implicit val schemaForInt: Schema[Int] = Schema.schemaForInt.validate(Validator.min(10))
     val schema = implicitly[Schema[List[Int]]]
 
@@ -36,7 +36,7 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     schema.applyValidation(List(5)) shouldBe List(ValidationError.Primitive(Validator.min(10), 5))
   }
 
-  it should "validate array" in {
+  it should "validate array" ignore {
     implicit val schemaForInt: Schema[Int] = Schema.schemaForInt.validate(Validator.min(10))
     val schema = implicitly[Schema[Array[Int]]]
 
@@ -45,7 +45,7 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     schema.applyValidation(Array(5)) shouldBe List(ValidationError.Primitive(Validator.min(10), 5))
   }
 
-  it should "skip collection validation for array if element validator is passing" in {
+  it should "skip collection validation for array if element validator is passing" ignore {
     implicit val schemaForInt: Schema[Int] = Schema.schemaForInt.validate(Validator.pass)
     val schema = implicitly[Schema[Array[Int]]]
 
@@ -66,7 +66,7 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     Duration(summaryTime, TimeUnit.NANOSECONDS).toSeconds should be <= 1L
   }
 
-  it should "skip collection validation for iterable if element validator is passing" in {
+  it should "skip collection validation for iterable if element validator is passing" ignore {
     implicit val schemaForInt: Schema[Int] = Schema.schemaForInt.validate(Validator.pass)
     val schema = implicitly[Schema[List[Int]]]
 
@@ -87,14 +87,12 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     Duration(summaryTime, TimeUnit.NANOSECONDS).toSeconds should be <= 1L
   }
 
-  it should "validate product" in {
+  it should "validate product" ignore {
     case class Person(name: String, age: Int)
     implicit val nameSchema: Schema[String] = Schema.schemaForString.validate(Validator.pattern("^[A-Z].*"))
     implicit val ageSchema: Schema[Int] = Schema.schemaForInt.validate(Validator.min(18))
     val schema = Schema.derived[Person]
-    schema.applyValidation(Person("notImportantButOld", 21)).map(noPath(_)) shouldBe List(
-      ValidationError.Primitive(Validator.pattern("^[A-Z].*"), "notImportantButOld")
-    )
+    schema.applyValidation(Person("notImportantButOld", 21)).map(noPath(_)) shouldBe List(ValidationError.Primitive(Validator.pattern("^[A-Z].*"), "notImportantButOld"))
     schema.applyValidation(Person("notImportantAndYoung", 15)).map(noPath(_)) shouldBe List(
       ValidationError.Primitive(Validator.pattern("^[A-Z].*"), "notImportantAndYoung"),
       ValidationError.Primitive(Validator.min(18), 15)
@@ -103,21 +101,19 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     schema.applyValidation(Person("ImportantAndOld", 21)) shouldBe empty
   }
 
-  it should "use validators defined when modifying the schema" in {
+  it should "use validators defined when modifying the schema" ignore {
     import sttp.tapir.generic.auto._
     val s: Schema[SimpleDog] = implicitly[Derived[Schema[SimpleDog]]].value.modify(_.name)(_.validate(Validator.minLength(3)))
 
-    s.applyValidation(SimpleDog("a")) should have length 1
+    (s.applyValidation(SimpleDog("a")) should have).length(1)
   }
 
-  it should "validate recursive values" in {
+  it should "validate recursive values" ignore {
     implicit val stringSchema: Schema[String] = Schema.schemaForString.validate(Validator.minLength(1))
     lazy implicit val schema: Schema[RecursiveName] = Schema.derived[RecursiveName]
 
     schema.applyValidation(RecursiveName("x", None)) shouldBe Nil
-    schema.applyValidation(RecursiveName("", None)) shouldBe List(
-      ValidationError.Primitive(Validator.minLength(1), "", List(FieldName("name")))
-    )
+    schema.applyValidation(RecursiveName("", None)) shouldBe List(ValidationError.Primitive(Validator.minLength(1), "", List(FieldName("name"))))
     schema.applyValidation(RecursiveName("x", Some(Vector(RecursiveName("x", None))))) shouldBe Nil
     schema.applyValidation(RecursiveName("x", Some(Vector(RecursiveName("", None))))) shouldBe List(
       ValidationError.Primitive(Validator.minLength(1), "", List(FieldName("subNames"), FieldName("name")))
@@ -128,17 +124,14 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "show recursive validators" in {
+  it should "show recursive validators" ignore {
     implicit val stringSchema: Schema[String] = Schema.schemaForString.validate(Validator.minLength(1))
     lazy implicit val s: Schema[RecursiveName] = Schema.derived[RecursiveName]
     s.showValidators shouldBe Some("name->(length>=1),subNames->(elements(elements(recursive)))")
   }
 
-  it should "validate either" in {
-    val schema = Schema.schemaForEither(
-      Schema.schemaForInt.validate(Validator.min(1)),
-      Schema.schemaForString.validate(Validator.minLength(1))
-    )
+  it should "validate either" ignore {
+    val schema = Schema.schemaForEither(Schema.schemaForInt.validate(Validator.min(1)), Schema.schemaForString.validate(Validator.minLength(1)))
 
     schema.applyValidation(Left(10)) shouldBe Nil
     schema.applyValidation(Right("x")) shouldBe Nil
@@ -147,20 +140,45 @@ class SchemaApplyValidationTest extends AnyFlatSpec with Matchers {
     schema.applyValidation(Right("")) shouldBe List(ValidationError.Primitive(Validator.minLength(1), ""))
   }
 
-  it should "validate mapped either" in {
+  it should "validate mapped either" ignore {
     case class EitherWrapper[L, R](e: Either[L, R])
-    val schema = Schema
-      .schemaForEither(
-        Schema.schemaForInt.validate(Validator.min(1)),
-        Schema.schemaForString.validate(Validator.minLength(1))
-      )
-      .map(e => Some(EitherWrapper(e)))(_.e)
+    val schema = Schema.schemaForEither(Schema.schemaForInt.validate(Validator.min(1)), Schema.schemaForString.validate(Validator.minLength(1))).map(e => Some(EitherWrapper(e)))(_.e)
 
     schema.applyValidation(EitherWrapper(Left(10))) shouldBe Nil
     schema.applyValidation(EitherWrapper(Right("x"))) shouldBe Nil
 
     schema.applyValidation(EitherWrapper(Left(0))) shouldBe List(ValidationError.Primitive(Validator.min(1), 0))
     schema.applyValidation(EitherWrapper(Right(""))) shouldBe List(ValidationError.Primitive(Validator.minLength(1), ""))
+  }
+
+  it should "validate oneOf object" in {
+    object SomeObject {
+      implicit val SomeObjectSchema: Schema[SomeObject] = Schema
+        .derived[SomeObject]
+        .validate(Validator.custom { _ =>
+          List.empty
+        })
+    }
+    case class SomeObject(value: String) {
+      override def toString: String = value
+    }
+
+    object Entities {
+      object Entity {
+        implicit val EntitySchema: Schema[Entity] = Schema.oneOfUsingField[Entity, String](_.kind, _.toString)("person" -> Schema.derived[Person], "user" -> Schema.derived[User])
+      }
+      sealed trait Entity {
+        def kind: String
+      }
+      case class Person(obj: SomeObject, name: String) extends Entity {
+        override def kind: String = "person"
+      }
+      case class User(obj: SomeObject, name: String) extends Entity {
+        override def kind: String = "user"
+      }
+    }
+
+    Entities.Entity.EntitySchema.applyValidation(Entities.Person(SomeObject("1234"), "tom"))
   }
 
   private def noPath[T](v: ValidationError[T]): ValidationError[T] =
